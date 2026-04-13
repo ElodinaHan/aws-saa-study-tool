@@ -1,23 +1,14 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { DOMAINS, CROSS_CUTTING, getAllTopics } from '../data/domains';
 import { useLang, topicText, domainText } from '../i18n';
-import { useLocalState } from '../hooks/useStorage';
 import TopicCard from '../components/TopicCard';
 import ProgressRing from '../components/ProgressRing';
 
-export default function Hub({ mastered, toggleMastered }) {
+export default function Hub({ mastered, toggleMastered, annotations, updateAnnotation }) {
   const { lang, t } = useLang();
   const [search, setSearch] = useState('');
   const [activeDomain, setActiveDomain] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
-  const [annotations, setAnnotations] = useLocalState('annotations', {});
-
-  const updateAnnotation = useCallback((topicId, patch) => {
-    setAnnotations((prev) => ({
-      ...prev,
-      [topicId]: { ...(prev[topicId] || {}), ...patch },
-    }));
-  }, [setAnnotations]);
 
   const allTopics = useMemo(() => getAllTopics(lang), [lang]);
   const totalTopics = allTopics.length;

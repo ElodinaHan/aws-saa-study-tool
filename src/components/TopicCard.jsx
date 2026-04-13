@@ -12,32 +12,20 @@ const HIGHLIGHT_COLORS = [
 ];
 
 export default function TopicCard({ topic, mastered, onToggle, color, annotation = {}, onAnnotation }) {
-  const { lang, t } = useLang();
+  const { lang } = useLang();
   const [open, setOpen] = useState(false);
   const [animating, setAnimating] = useState(false);
   const [memoOpen, setMemoOpen] = useState(false);
-  const [styleOpen, setStyleOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [memoText, setMemoText] = useState(annotation.memo || '');
-  const memoRef = useRef(null);
-  const styleRef = useRef(null);
+  const cardRef = useRef(null);
 
   const txt = topicText(topic, lang);
 
   const hl = annotation.highlight || null;
   const isBold = annotation.bold || false;
 
-  // sync local memo text when annotation changes externally
   useEffect(() => { setMemoText(annotation.memo || ''); }, [annotation.memo]);
-
-  // close menus on outside click
-  useEffect(() => {
-    if (!styleOpen) return;
-    const handler = (e) => {
-      if (styleRef.current && !styleRef.current.contains(e.target)) setStyleOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [styleOpen]);
 
   const handleToggle = useCallback((e) => {
     e.stopPropagation();
@@ -52,11 +40,29 @@ export default function TopicCard({ topic, mastered, onToggle, color, annotation
     onAnnotation({ memo: memoText.trim() || undefined });
   };
 
+  // keyboard shortcut: N to toggle memo when card is hovered
+  useEffect(() => {
+    if (!hovered) return;
+    const handler = (e) => {
+      if (e.key === 'n' || e.key === 'N') {
+        // don't trigger if typing in an input/textarea
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        setMemoOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [hovered]);
+
   const cardBg = hl ? `${hl}14` : mastered ? `${color}08` : 'var(--bg-secondary)';
   const cardBorder = hl ? `1.5px solid ${hl}44` : mastered ? `1.5px solid ${color}44` : '1px solid var(--border-primary)';
 
   return (
     <div
+      ref={cardRef}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         borderRadius: 'var(--radius-md)',
         border: cardBorder,
@@ -65,10 +71,9 @@ export default function TopicCard({ topic, mastered, onToggle, color, annotation
         transition: 'all var(--transition-normal)',
         opacity: mastered ? 0.65 : 1,
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'visible',
       }}
     >
-      {/* Confetti particles on check */}
       {animating && <ConfettiParticles color={color} />}
 
       {/* Left highlight strip */}
@@ -78,6 +83,67 @@ export default function TopicCard({ topic, mastered, onToggle, color, annotation
           background: hl, borderRadius: '4px 0 0 4px',
         }} />
       )}
+
+      {/* ── Floating quick-action toolbar (visible on hover) ── */}
+      <div style={{
+        position: 'absolute',
+        top: -1,
+        right: 12,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 3,
+        padding: '3px 6px',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-secondary)',
+        borderRadius: '0 0 var(--radius-sm) var(--radius-sm)',
+        boxShadow: '0 2px 8px rgba(0,0,0,.1)',
+        opacity: hovered ? 1 : 0,
+        pointerEvents: hovered ? 'auto' : 'none',
+        transform: hovered ? 'translateY(0)' : 'translateY(-4px)',
+        transition: 'opacity .15s ease, transform .15s ease',
+        zIndex: 5,
+      }}>
+        {HIGHLIGHT_COLORS.map((c, i) => (
+          <button
+            key={i}
+            onClick={(e) => { e.stopPropagation(); onAnnotation({ highlight: c || undefined }); }}
+            title={!c ? (lang === 'en' ? 'Clear highlight' : '清除高亮') : ''}
+            style={{
+              width: 14, height: 14, borderRadius: '50%',
+              background: c || 'var(--bg-tertiary)',
+              border: (hl === c || (!hl && !c)) ? '2px solid var(--text-primary)' : '1px solid var(--border-primary)',
+              cursor: 'pointer',
+              position: 'relative',
+              flexShrink: 0,
+            }}
+          >
+            {!c && <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: 'var(--text-tertiary)' }}>✕</span>}
+          </button>
+        ))}
+        <div style={{ width: 1, height: 12, background: 'var(--border-primary)', margin: '0 2px' }} />
+        <button
+          onClick={(e) => { e.stopPropagation(); onAnnotation({ bold: !isBold }); }}
+          title={lang === 'en' ? 'Bold' : '加粗'}
+          style={{
+            width: 18, height: 18, borderRadius: 3, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            fontSize: 11, fontWeight: 800, cursor: 'pointer',
+            color: isBold ? 'var(--text-primary)' : 'var(--text-tertiary)',
+            background: isBold ? 'var(--bg-hover)' : 'transparent',
+          }}
+        >B</button>
+        <button
+          onClick={(e) => { e.stopPropagation(); setMemoOpen((v) => !v); }}
+          title={lang === 'en' ? 'Memo (N)' : '備忘錄 (N)'}
+          style={{
+            width: 18, height: 18, borderRadius: 3, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            fontSize: 11, cursor: 'pointer',
+            color: annotation.memo ? 'var(--accent-gold)' : 'var(--text-tertiary)',
+            background: memoOpen ? 'var(--bg-hover)' : 'transparent',
+          }}
+        >N</button>
+      </div>
 
       <div
         style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}
@@ -122,101 +188,16 @@ export default function TopicCard({ topic, mastered, onToggle, color, annotation
           <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.55, fontWeight: isBold ? 600 : 400 }}>{txt.desc}</div>
         </div>
 
-        {/* Right-side action icons + expand arrow */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-          {/* Style button */}
-          <div ref={styleRef} style={{ position: 'relative' }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); setStyleOpen((v) => !v); }}
-              title={lang === 'en' ? 'Color & Style' : '顏色與樣式'}
-              style={{
-                width: 22, height: 22, borderRadius: 4, display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-                color: hl || 'var(--text-tertiary)', fontSize: 13,
-                opacity: hl || isBold ? 1 : 0.5,
-                transition: 'opacity var(--transition-fast)',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = hl || isBold ? '1' : '0.5')}
-            >
-              🎨
-            </button>
-            {styleOpen && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: 'absolute', right: 0, top: 28, zIndex: 10,
-                  background: 'var(--bg-elevated)', border: '1px solid var(--border-secondary)',
-                  borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)',
-                  padding: 10, minWidth: 140, animation: 'fadeIn .15s ease',
-                }}
-              >
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 500 }}>
-                  {lang === 'en' ? 'Highlight' : '高亮'}
-                </div>
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
-                  {HIGHLIGHT_COLORS.map((c, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { onAnnotation({ highlight: c || undefined }); }}
-                      style={{
-                        width: 20, height: 20, borderRadius: '50%',
-                        background: c || 'var(--bg-tertiary)',
-                        border: (hl === c || (!hl && !c)) ? '2px solid var(--text-primary)' : '1px solid var(--border-primary)',
-                        cursor: 'pointer', position: 'relative',
-                      }}
-                    >
-                      {!c && (
-                        <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--text-tertiary)' }}>✕</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => onAnnotation({ bold: !isBold })}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '5px 8px', borderRadius: 'var(--radius-sm)', width: '100%',
-                    background: isBold ? 'var(--bg-hover)' : 'transparent',
-                    fontSize: 12, color: 'var(--text-secondary)', fontWeight: isBold ? 700 : 400,
-                    transition: 'background var(--transition-fast)',
-                  }}
-                >
-                  <strong>B</strong> {lang === 'en' ? 'Bold' : '加粗'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Memo button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setMemoOpen((v) => !v); }}
-            title={lang === 'en' ? 'Memo' : '備忘錄'}
-            style={{
-              width: 22, height: 22, borderRadius: 4, display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              color: annotation.memo ? 'var(--accent-gold)' : 'var(--text-tertiary)',
-              fontSize: 13,
-              opacity: annotation.memo ? 1 : 0.5,
-              transition: 'opacity var(--transition-fast)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = annotation.memo ? '1' : '0.5')}
-          >
-            📝
-          </button>
-
-          {txt.details?.length > 0 && (
-            <span style={{
-              fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 2,
-              transition: 'transform var(--transition-fast)',
-              transform: open ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block',
-            }}>▶</span>
-          )}
-        </div>
+        {txt.details?.length > 0 && (
+          <span style={{
+            fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3,
+            transition: 'transform var(--transition-fast)',
+            transform: open ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block',
+          }}>▶</span>
+        )}
       </div>
 
-      {/* Memo area */}
+      {/* Memo editor */}
       {memoOpen && (
         <div
           onClick={(e) => e.stopPropagation()}
@@ -227,11 +208,15 @@ export default function TopicCard({ topic, mastered, onToggle, color, annotation
           }}
         >
           <textarea
-            ref={memoRef}
+            autoFocus
             value={memoText}
             onChange={(e) => setMemoText(e.target.value)}
             onBlur={saveMemo}
-            placeholder={lang === 'en' ? 'Add a personal note…' : '添加個人筆記…'}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { saveMemo(); setMemoOpen(false); }
+              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { saveMemo(); setMemoOpen(false); }
+            }}
+            placeholder={lang === 'en' ? 'Add a personal note... (Cmd+Enter to save, Esc to close)' : '添加個人筆記… (Cmd+Enter 保存, Esc 關閉)'}
             style={{
               width: '100%', minHeight: 60, fontSize: 12.5, lineHeight: 1.6,
               color: 'var(--text-primary)', background: 'var(--bg-tertiary)',
@@ -243,9 +228,7 @@ export default function TopicCard({ topic, mastered, onToggle, color, annotation
             <button
               onClick={() => { setMemoText(''); onAnnotation({ memo: undefined }); setMemoOpen(false); }}
               style={{ fontSize: 11, color: 'var(--text-tertiary)', padding: '3px 8px' }}
-            >
-              {lang === 'en' ? 'Clear' : '清除'}
-            </button>
+            >{lang === 'en' ? 'Clear' : '清除'}</button>
             <button
               onClick={() => { saveMemo(); setMemoOpen(false); }}
               style={{
@@ -253,20 +236,16 @@ export default function TopicCard({ topic, mastered, onToggle, color, annotation
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--accent-gold)', color: '#000',
               }}
-            >
-              {lang === 'en' ? 'Save' : '保存'}
-            </button>
+            >{lang === 'en' ? 'Save' : '保存'}</button>
           </div>
         </div>
       )}
 
-      {/* Saved memo display (when memo panel closed) */}
+      {/* Saved memo display */}
       {!memoOpen && annotation.memo && (
         <div
           onClick={(e) => { e.stopPropagation(); setMemoOpen(true); }}
-          style={{
-            marginTop: 8, paddingLeft: 32, cursor: 'pointer',
-          }}
+          style={{ marginTop: 8, paddingLeft: 32, cursor: 'pointer' }}
         >
           <div style={{
             fontSize: 12, color: 'var(--accent-gold)', lineHeight: 1.55,
@@ -274,7 +253,7 @@ export default function TopicCard({ topic, mastered, onToggle, color, annotation
             background: 'rgba(212,168,67,.06)', border: '1px solid rgba(212,168,67,.15)',
             whiteSpace: 'pre-wrap',
           }}>
-            <span style={{ fontSize: 10, marginRight: 4 }}>📝</span>
+            <span style={{ fontSize: 10, marginRight: 4, opacity: 0.7 }}>N</span>
             {annotation.memo}
           </div>
         </div>

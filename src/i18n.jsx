@@ -8,6 +8,7 @@ const dict = {
   'nav.hub': { en: 'Knowledge Hub', zh: '知識庫' },
   'nav.flashcards': { en: 'Flashcards', zh: '閃卡複習' },
   'nav.quiz': { en: 'Quizzes', zh: '模擬測驗' },
+  'nav.notes': { en: 'Notes', zh: '筆記' },
   'nav.settings': { en: 'Settings', zh: '設定' },
   'sidebar.subtitle': { en: 'SAA-C03 Study Platform', zh: 'SAA-C03 學習平台' },
   'sidebar.lightMode': { en: 'Light Mode', zh: '亮色模式' },
