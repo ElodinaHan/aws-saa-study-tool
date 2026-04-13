@@ -75,7 +75,7 @@ export function importData(file) {
 
 /** Theme hook */
 export function useTheme() {
-  const [theme, setTheme] = useLocalState('theme', 'dark');
+  const [theme, setTheme] = useLocalState('theme', 'light');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);

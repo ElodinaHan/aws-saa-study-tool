@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { DOMAINS, CROSS_CUTTING, getAllTopics } from '../data/domains';
 import { useLang, topicText, domainText } from '../i18n';
+import { useLocalState } from '../hooks/useStorage';
 import TopicCard from '../components/TopicCard';
 import ProgressRing from '../components/ProgressRing';
 
@@ -9,6 +10,14 @@ export default function Hub({ mastered, toggleMastered }) {
   const [search, setSearch] = useState('');
   const [activeDomain, setActiveDomain] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
+  const [annotations, setAnnotations] = useLocalState('annotations', {});
+
+  const updateAnnotation = useCallback((topicId, patch) => {
+    setAnnotations((prev) => ({
+      ...prev,
+      [topicId]: { ...(prev[topicId] || {}), ...patch },
+    }));
+  }, [setAnnotations]);
 
   const allTopics = useMemo(() => getAllTopics(lang), [lang]);
   const totalTopics = allTopics.length;
@@ -156,10 +165,12 @@ export default function Hub({ mastered, toggleMastered }) {
         <div key={domain.id} style={{ marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
             <div style={{ width: 4, height: 18, borderRadius: 2, background: domain.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 15, fontWeight: 600, color: domain.color }}>{domain.title}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: domain.color }}>{domainText(domain, lang).title}</span>
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 14, paddingLeft: 14 }}>
-            {lang === 'zh' ? `${domain.title} — ${t('hub.examWeight')} ${domain.weight}%` : `${domain.titleZh} — ${t('hub.examWeight')} ${domain.weight}%`}
+            {lang === 'zh'
+              ? `${domain.title} — ${t('hub.examWeight')} ${domain.weight}%`
+              : `${t('hub.examWeight')} ${domain.weight}%`}
           </div>
 
           {domain.sections.map((section) => {
@@ -217,6 +228,8 @@ export default function Hub({ mastered, toggleMastered }) {
                         mastered={!!mastered[t.id]}
                         onToggle={toggleMastered}
                         color={domain.color}
+                        annotation={annotations[t.id] || {}}
+                        onAnnotation={(patch) => updateAnnotation(t.id, patch)}
                       />
                     ))}
                   </div>
