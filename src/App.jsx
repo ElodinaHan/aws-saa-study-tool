@@ -7,6 +7,7 @@ import Flashcards from './pages/Flashcards';
 import Quiz from './pages/Quiz';
 import Settings from './pages/Settings';
 import Notes from './pages/Notes';
+import Glossary from './pages/Glossary';
 import CommandPalette from './components/CommandPalette';
 
 const NAV = [
@@ -14,6 +15,7 @@ const NAV = [
   { to: '/flashcards', icon: Icons.cards, key: 'nav.flashcards' },
   { to: '/quiz', icon: Icons.quiz, key: 'nav.quiz' },
   { to: '/notes', icon: Icons.notes, key: 'nav.notes' },
+  { to: '/glossary', icon: Icons.glossary, key: 'nav.glossary' },
   { to: '/settings', icon: Icons.settings, key: 'nav.settings' },
 ];
 
@@ -42,6 +44,13 @@ Icons.notes = (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
     <path d="M7 7h6M7 10h6M7 13h3" />
+  </svg>
+);
+Icons.glossary = (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 2h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4" />
+    <path d="M4 2v16" /><path d="M4 10h12" />
+    <path d="M8 5h4M8 14h3" />
   </svg>
 );
 
@@ -227,6 +236,7 @@ export default function App() {
             <Route path="/flashcards" element={<Flashcards mastered={mastered} toggleMastered={toggleMastered} />} />
             <Route path="/quiz" element={<Quiz mastered={mastered} />} />
             <Route path="/notes" element={<Notes annotations={annotations} updateAnnotation={updateAnnotation} />} />
+            <Route path="/glossary" element={<Glossary mastered={mastered} />} />
             <Route path="/settings" element={<Settings mastered={mastered} setMastered={setMastered} />} />
           </Routes>
         </div>
